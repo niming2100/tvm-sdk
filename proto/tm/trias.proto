@@ -1,0 +1,27 @@
+syntax = "proto3";
+package tm;
+
+service VirtualMachineService {
+    rpc ExecuteContract (ExecuteContractRequest) returns (ExecuteContractResponse);
+}
+
+message ExecuteContractRequest {
+    string address = 1;
+    string checkMD5 = 2;
+    string command = 3;
+    string contractName = 4;
+    string contractType = 5;
+    string contractVersion = 6;
+    string vmVersion = 7;
+    string sequence = 8;
+    int64 timestamp = 9;
+    string user = 10;
+    string signature = 11;
+    string operation = 12;
+}
+
+message ExecuteContractResponse {
+    int32 code = 1;
+    string message = 2;
+    string data = 3;
+}

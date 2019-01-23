@@ -1,0 +1,21 @@
+orderServer: orderer.trias.com:7050
+
+peerServer: peer0.org1.trias.com
+
+ordererOrgName: Orderer
+
+orgAdmin: Admin
+
+orgName: OrdererOrg
+
+contractPath: /trias-contract/
+
+channelID: mychannel
+
+IPFSAddress: http://127.0.0.1:8080/ipfs/
+
+dockerPath: github.com/hyperledger/fabric/singlepeer/chaincode/go/
+
+port: 8088
+
+userName: User1
