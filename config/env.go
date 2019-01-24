@@ -12,11 +12,11 @@ type TVMconf struct {
 	OrdererOrgName string `yaml:"ordererOrgName"`
 	IPFSAddress    string `yaml:"IPFSAddress"`
 	DockerPath     string `yaml:"dockerPath"`
-	Port           string `yml:"port"`
-	OrgAdmin       string `yml:"orgAdmin"`
-	OrgName        string `yml:"orgName"`
-	UserName       string `yml:"userName"`
-	PeerServer       string `yml:"peerServer"`
+	Port           string `yaml:"port"`
+	OrgAdmin       string `yaml:"orgAdmin"`
+	OrgName        string `yaml:"orgName"`
+	UserName       string `yaml:"userName"`
+	PeerServer       string `yaml:"peerServer"`
 
 }
 

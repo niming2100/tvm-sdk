@@ -65,7 +65,7 @@ func (serv *server) ExecuteContract(ctx context.Context, request *tm.ExecuteCont
 		ChaincodePath:    triasConf.GetContractPath() + filePath[len(os.Getenv("GOPATH") + "/src" + triasConf.GetContractPath()):],
 		OrgAdmin:         triasConf.GetOrgAdmin(),
 		OrgName:          triasConf.GetOrgName(),
-		ConfigFile:       "config-sdk.yaml",
+		ConfigFile:       "/home/Polarbear/workGo/src/tvm-sdk/config_e2e_single_org.yaml",
 
 		// User parameters
 		UserName: triasConf.GetUserName(),
