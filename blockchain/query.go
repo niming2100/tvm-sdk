@@ -1,10 +1,7 @@
 package blockchain
 
 import (
-	"encoding/json"
 	"fmt"
-
-	"citizens/common"
 
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/channel"
 )
@@ -22,10 +19,6 @@ func (setup *FabricSetup) Query(funcName string,args [][]byte) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to query: %v", err)
 	}
-
-	people := common.People{}
-	err = json.Unmarshal([]byte(response.Payload), &people)
-	fmt.Println(people)
 
 	return string(response.Payload), nil
 }

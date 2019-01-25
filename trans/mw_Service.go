@@ -31,7 +31,7 @@ func (serv *server) ExecuteContract(ctx context.Context, request *tm.ExecuteCont
 		return returnErrorResponse(err);
 	}
 	// TODO CheckContract is install
-	var filePath = os.Getenv("GOPATH") + "/src" + triasConf.GetContractPath() + "/" + request.GetUser() + "/" + request.GetAddress() + "/" + request.GetContractName() + "/";
+	var filePath = os.Getenv("GOPATH") + "/src/" + triasConf.GetContractPath() + "/" + request.GetUser() + "/" + request.GetAddress() + "/" + request.GetContractName() + "/";
 	var fileName = request.GetContractName() + fileSuffix;
 	isExists, err := t_utils.PathExists(filePath + fileName);
 	if err != nil {
@@ -50,6 +50,8 @@ func (serv *server) ExecuteContract(ctx context.Context, request *tm.ExecuteCont
 		return returnErrorResponse(err);
 	}
 
+	fmt.Println(filePath)
+
 	fSetup := blockchain.FabricSetup{
 		// Network parameters
 		OrdererID: triasConf.GetOrderServer(),
@@ -62,7 +64,7 @@ func (serv *server) ExecuteContract(ctx context.Context, request *tm.ExecuteCont
 		ChainCodeID:      request.GetContractName(),
 		ChainCodeVersion: request.GetContractVersion(),
 		ChaincodeGoPath:  os.Getenv("GOPATH"),
-		ChaincodePath:    triasConf.GetContractPath() + filePath[len(os.Getenv("GOPATH") + "/src" + triasConf.GetContractPath()):],
+		ChaincodePath:    triasConf.GetDockerPath() + filePath[len(os.Getenv("GOPATH") + "/src/" + triasConf.GetContractPath()):],
 		OrgAdmin:         triasConf.GetOrgAdmin(),
 		OrgName:          triasConf.GetOrgName(),
 		ConfigFile:       "/home/Polarbear/workGo/src/tvm-sdk/config_e2e_single_org.yaml",

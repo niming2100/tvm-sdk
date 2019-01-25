@@ -114,6 +114,15 @@ func (setup *FabricSetup) Initialize() error {
 		fmt.Println("Channel already exist")
 	}
 
+	// Channel client is used to query and execute transactions
+	clientContext := setup.sdk.ChannelContext(setup.ChannelID, fabsdk.WithUser(setup.UserName))
+	// clientContext := setup.sdk.ChannelContext(setup.ChannelID, fabsdk.WithUser(setup.UserName), fabsdk.WithOrg("fbi.citizens.com"))
+	setup.client, err = channel.New(clientContext)
+	if err != nil {
+		return errors.WithMessage(err, "failed to create new channel client")
+	}
+	fmt.Println("Channel client created")
+
 	fmt.Println("Initialization Successful")
 	setup.initialized = true
 	return nil

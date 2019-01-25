@@ -109,7 +109,7 @@ client:
 channels:
 
   # multi-org test channel
-  orgchannel:
+  mychannel:
 
     peers:
       peer0.org1.trias.com:
@@ -144,7 +144,7 @@ channels:
 #
 organizations:
   OrdererOrg:
-    mspid: OrdererMSP
+    mspid: Org1MSP
 
     # This org's MSP store (absolute path or relative to client.cryptoconfig)
     cryptoPath:  peerOrganizations/org1.trias.com/users/{username}@org1.trias.com/msp
@@ -263,12 +263,12 @@ entityMatchers:
 
   peer:
     - pattern: peer0.org1.trias.com
-      urlSubstitutionExp: localhost:7051
+      urlSubstitutionExp: grpc://localhost:7051
       sslTargetOverrideUrlSubstitutionExp: peer0.org1.trias.com
       mappedHost: peer0.org1.trias.com
 
   orderer:
     - pattern: orderer.trias.com
-      urlSubstitutionExp: localhost:7050
+      urlSubstitutionExp: grpc://localhost:7050
       sslTargetOverrideUrlSubstitutionExp: orderer.trias.com
       mappedHost: orderer.trias.com

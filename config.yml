@@ -8,7 +8,7 @@ orgAdmin: Admin
 
 orgName: OrdererOrg
 
-contractPath: /trias-contract/
+contractPath: github.com/hyperledger/fabric/singlepeer/chaincode/go
 
 channelID: mychannel
 
