@@ -8,7 +8,7 @@ orgAdmin: Admin
 
 orgName: OrdererOrg
 
-contractPath: github.com/hyperledger/fabric/singlepeer/chaincode/go
+contractPath: /trias-contract/contract/
 
 channelID: mychannel
 
@@ -19,3 +19,20 @@ dockerPath: github.com/hyperledger/fabric/singlepeer/chaincode/go/
 port: 8088
 
 userName: User1
+
+ipfsAPIAddress: 127.0.0.1:5001
+
+goPath: /opt/gopath/
+
+composeFilePath: src/github.com/hyperledger/fabric/singlepeer/docker-compose-cli.yaml
+
+#don't change this
+dataPath: /var/hyperledger/data/
+
+packagePath: /trias-contract/backup/
+
+couchdbInfo:
+  port: 5984
+  path: /var/hyperledger/data/couchdb0/_data/
+  username: trias
+  password: trias@Password

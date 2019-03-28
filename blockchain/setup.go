@@ -79,7 +79,7 @@ func (setup *FabricSetup) Initialize() error {
 
 	channelHasInstall := false
 	// 查询已经存在的channel
-	channelRes, err := setup.admin.QueryChannels(resmgmt.WithTargetEndpoints(triasConf.GetPeerServer()))
+	channelRes, err := setup.admin.QueryChannels(resmgmt.WithTargetEndpoints(triasConf.TriasConfig.PeerServer))
 	if err != nil {
 		return errors.WithMessage(err, "failed to Query channel")
 	}
@@ -124,24 +124,33 @@ func (setup *FabricSetup) Initialize() error {
 	fmt.Println("Channel client created")
 
 	fmt.Println("Initialization Successful")
+
+	// Creation of the client which will enables access to our channel events
+	setup.event, err = event.New(clientContext)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Event client created")
+
+	fmt.Println("Chaincode Installation & Instantiation Successful")
+
 	setup.initialized = true
 	return nil
 }
 
-
-func (setup *FabricSetup) InstallCC() (string,error) {
+func (setup *FabricSetup) InstallCC() (string, error) {
 	// Create the chaincode package that will be sent to the peers
 	ccPkg, err := packager.NewCCPackage(setup.ChaincodePath, setup.ChaincodeGoPath)
 	if err != nil {
-		return "",errors.WithMessage(err, "failed to create chaincode package")
+		return "", errors.WithMessage(err, "failed to create chaincode package")
 	}
 	fmt.Println("ccPkg created")
 
 	ccHasInstall := false
 	// 查询已经安装的CC
-	ccInstalledRes, err := setup.admin.QueryInstalledChaincodes(resmgmt.WithTargetEndpoints(triasConf.GetPeerServer()))
+	ccInstalledRes, err := setup.admin.QueryInstalledChaincodes(resmgmt.WithTargetEndpoints(triasConf.TriasConfig.PeerServer))
 	if err != nil {
-		return "",errors.WithMessage(err, "failed to Query Installed chaincode")
+		return "", errors.WithMessage(err, "failed to Query Installed chaincode")
 	}
 
 	if ccInstalledRes != nil {
@@ -160,22 +169,20 @@ func (setup *FabricSetup) InstallCC() (string,error) {
 		installCCReq := resmgmt.InstallCCRequest{Name: setup.ChainCodeID, Path: setup.ChaincodePath, Version: setup.ChainCodeVersion, Package: ccPkg}
 		_, err = setup.admin.InstallCC(installCCReq, resmgmt.WithRetry(retry.DefaultResMgmtOpts))
 		if err != nil {
-			return "",errors.WithMessage(err, "failed to install chaincode")
+			return "", errors.WithMessage(err, "failed to install chaincode")
 		}
 		fmt.Println("Chaincode install success")
 	} else {
 		fmt.Println("Chaincode already exist")
 	}
-	return "success",nil
+	return "success", nil
 }
 
-
-func (setup *FabricSetup)InstantiateCC(args [][]byte) (string,error) {
+func (setup *FabricSetup) InstantiateCC(args [][]byte) (string, error) {
 
 	ccHasInstantiate := false
 	// 查询已经实例化的链码
-	// ccInstantiatedRes, err := setup.admin.QueryInstantiatedChaincodes(setup.ChannelID, resmgmt.WithOrdererEndpoint(setup.OrdererID))
-	ccInstantiatedRes, err := setup.admin.QueryInstantiatedChaincodes(setup.ChannelID, resmgmt.WithTargetEndpoints(triasConf.GetPeerServer()))
+	ccInstantiatedRes, err := setup.admin.QueryInstantiatedChaincodes(setup.ChannelID, resmgmt.WithTargetEndpoints(triasConf.TriasConfig.PeerServer))
 
 	if ccInstantiatedRes.Chaincodes != nil && len(ccInstantiatedRes.Chaincodes) > 0 {
 		for _, chaincodeInfo := range ccInstantiatedRes.Chaincodes {
@@ -186,10 +193,6 @@ func (setup *FabricSetup)InstantiateCC(args [][]byte) (string,error) {
 		}
 	}
 
-	// could not get chConfig cache reference:read configuration for channel peers failed
-
-	// Set up chaincode policy
-	// ccPolicy := cauthdsl.SignedByAnyMember([]string{"fbi.citizens.com"})
 	if !ccHasInstantiate {
 		// 这里的参数名是msp名称 不是域名
 		ccPolicy := cauthdsl.SignedByAnyMember([]string{"org1.trias.com"})
@@ -197,7 +200,7 @@ func (setup *FabricSetup)InstantiateCC(args [][]byte) (string,error) {
 		// opts := requestOptions{Targets: peers}
 		resp, err := setup.admin.InstantiateCC(setup.ChannelID, request)
 		if err != nil || resp.TransactionID == "" {
-			return "",errors.WithMessage(err, "failed to instantiate the chaincode")
+			return "", errors.WithMessage(err, "failed to instantiate the chaincode")
 		}
 		fmt.Println("Chaincode instantiate success")
 	} else {
@@ -209,19 +212,19 @@ func (setup *FabricSetup)InstantiateCC(args [][]byte) (string,error) {
 	// clientContext := setup.sdk.ChannelContext(setup.ChannelID, fabsdk.WithUser(setup.UserName), fabsdk.WithOrg("fbi.citizens.com"))
 	setup.client, err = channel.New(clientContext)
 	if err != nil {
-		return "",errors.WithMessage(err, "failed to create new channel client")
+		return "", errors.WithMessage(err, "failed to create new channel client")
 	}
 	fmt.Println("Channel client created")
 
 	// Creation of the client which will enables access to our channel events
 	setup.event, err = event.New(clientContext)
 	if err != nil {
-		return "",errors.WithMessage(err, "failed to create new event client")
+		return "", errors.WithMessage(err, "failed to create new event client")
 	}
 	fmt.Println("Event client created")
 
 	fmt.Println("Chaincode Installation & Instantiation Successful")
-	return "success",nil
+	return "success", nil
 }
 
 func (setup *FabricSetup) CloseSDK() {
