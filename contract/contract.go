@@ -2,120 +2,73 @@ package contract
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"io/ioutil"
-	"os/exec"
-	"strings"
-	tvm_conf "tvm-light/config"
+	"os"
+	"tvm-sdk/blockchain"
+	triasConf "tvm-sdk/config"
+	t_utils "tvm-sdk/utils"
 )
 
-type Contract struct {
-	peerAddress     string
-	contractName    string
-	contractType    string
-	contractPath    string
-	contractVersion string
-	channelID       string
-	orgName         string
-	args            string
-	action          string
+func UpdateCurrentHash(key string, hash string) {
+	bSetup := initSdk();
+	defer bSetup.CloseSDK()
+	c_hash := getValue(key, bSetup);
+	final_hash := t_utils.Sha256(hash + triasConf.Secret + c_hash);
+	setValue(key, final_hash, bSetup);
 }
 
-type Args struct {
-	Args interface{} `json:"Args"`
+func UpdateCurrentIpfsAddress(key string, hash string) {
+	bSetup := initSdk();
+	defer bSetup.CloseSDK()
+	setValue(key, hash, bSetup);
 }
 
-// {\"Args\":[\"query\",\"a\"]}
-const (
-	CMD_DOCKER = "docker"
-)
-
-var docker_command []string = []string{"exec", "cli"}
-
-func NewContract(peerAddress string, contractName string, contractType string, contractPath string, contractVersion string, channelID string, orgName string, args string, action string) *Contract {
-	return &Contract{peerAddress: peerAddress, contractName: contractName, contractType: contractType, contractPath: contractPath, contractVersion: contractVersion, channelID: channelID, orgName: orgName, args: args, action: action}
+func GetCurrentHash(key string) string {
+	bSetup := initSdk();
+	defer bSetup.CloseSDK()
+	c_hash := getValue(key, bSetup);
+	return c_hash
 }
 
-
-func (c *Contract) RunContract() (string, error) {
-
-	var resp string;
-	var err error = nil;
-	switch c.action {
-	case "instantiate":
-		resp,err = c.instantiate()
-		break;
-	case "install":
-		resp,err =  c.InstallContract()
-	default:
-		resp,err =  c.execute()
-		break;
-	}
-	return resp,err;
-}
-
-func (c *Contract) InstallContract() (string,error) {
-	var filePath string = tvm_conf.GetDockerPath() + c.contractPath[len(tvm_conf.GetContractPath()):];
-	fmt.Println("dockerPath:",tvm_conf.GetDockerPath())
-	params := []string{"peer", "chaincode", "install", "-n", c.contractName, "-p", filePath, "-v", c.contractVersion};
-	return runCommand(params);
-}
-
-func (c *Contract) instantiate() (string, error) {
-	params := []string{"peer", "chaincode", "instantiate", "-o", tvm_conf.GetOrderServer(), "-C", c.channelID, "-n", c.contractName, "-v", c.contractVersion, "-c", c.args};
-	return runCommand(params);
-}
-
-func (c *Contract) execute() (string, error) {
-	// peer chaincode $action -C $channelID -n $cname -c $args
-	params := []string{"peer", "chaincode", c.action, "-C", c.channelID, "-n", c.contractName, "-c", c.args};
-	return runCommand(params);
-
-}
-
-func runCommand(param []string)(string, error){
-	cmd := exec.Command(CMD_DOCKER, append(docker_command, param...)...);
-	// 获取输出对象，可以从该对象中读取输出结果
-	stdout, err := cmd.StdoutPipe()
-	stderrOut, err := cmd.StderrPipe()
-	if err != nil {
+func setValue(key string, value string, setup *blockchain.FabricSetup) {
+	var command string = "{\"Args\":[\"invoke\",\"" + key + "\",\"" + value + "\"]}"
+	funName, args, _ := t_utils.GetFuncAndArgs(command);
+	if _, err := setup.Invoke(funName, t_utils.StringArrayToByte(args[1:])); err != nil {
 		fmt.Println(err)
-		return "", err
 	}
-	// 保证关闭输出流
-	defer stdout.Close()
-	defer stderrOut.Close()
-	// 运行命令
-	fmt.Println(cmd.Args)
-	if err := cmd.Start(); err != nil {
-		fmt.Println(err)
-		return "", err
-	}
-	// 读取输出结果
-	opBytes, err := ioutil.ReadAll(stdout)
-	errBytes, err := ioutil.ReadAll(stderrOut)
+}
 
-	var opString string = string(opBytes)
-	var errString string = string(errBytes)
-	cmd.Wait()
-	if !strings.EqualFold(opString,"") {
-		fmt.Println(opString)
-		return opString,nil
+func getValue(key string, setup *blockchain.FabricSetup) string {
+	var command string = "{\"Args\":[\"query\",\"" + key + "\"]}"
+	funName, args, _ := t_utils.GetFuncAndArgs(command);
+	if result, err := setup.Query(funName, t_utils.StringArrayToByte(args[1:])); err == nil {
+		return result
 	} else {
-		fmt.Println(errString)
-		err = solveErrorResult(errString)
-		if(err != nil){
-			return "install error",err
-		} else {
-			return "",err
-		}
+		fmt.Println(err)
+		return ""
 	}
 }
 
-func solveErrorResult(result string) error{
-	var err error = nil;
-	if(strings.Contains(result,"Error: ")){
-		err = errors.Errorf("Execute contract happens a error!")
+func initSdk() *blockchain.FabricSetup {
+	basicSetup := blockchain.FabricSetup{
+		// Network parameters
+		OrdererID: triasConf.TriasConfig.OrderServer,
+
+		// Channel parameters
+		ChannelID:     triasConf.TriasConfig.ChannelID,
+		ChannelConfig: os.Getenv("GOPATH") + "/src/github.com/hyperledger/fabric/singlepeer/channel-artifacts/mychannel.tx",
+
+		// Chaincode parameters
+		ChainCodeID:      triasConf.BasicContractName,
+		ChainCodeVersion: triasConf.BasicContractVersion,
+		ChaincodeGoPath:  os.Getenv("GOPATH"),
+		ChaincodePath:    triasConf.BasicContractPath,
+		OrgAdmin:         triasConf.TriasConfig.OrgAdmin,
+		OrgName:          triasConf.TriasConfig.OrgName,
+		ConfigFile:       os.Getenv("GOPATH") + "/src/tvm-sdk/config_e2e_single_org.yaml",
+
+		// User parameters
+		UserName: triasConf.TriasConfig.OrgAdmin,
 	}
-	return err
+	basicSetup.Initialize()
+	return &basicSetup;
 }

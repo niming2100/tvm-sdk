@@ -1,12 +1,12 @@
 package trans
 
 import (
-	"encoding/json"
 	"fmt"
 	"golang.org/x/net/context"
 	"os"
 	"tvm-sdk/blockchain"
 	triasConf "tvm-sdk/config"
+	"tvm-sdk/contract"
 	"tvm-sdk/proto/tm"
 	t_utils "tvm-sdk/utils"
 	"tvm-sdk/validate"
@@ -31,7 +31,7 @@ func (serv *server) ExecuteContract(ctx context.Context, request *tm.ExecuteCont
 		return returnErrorResponse(err);
 	}
 	// TODO CheckContract is install
-	var filePath = os.Getenv("GOPATH") + "/src/" + triasConf.GetContractPath() + "/" + request.GetUser() + "/" + request.GetAddress() + "/" + request.GetContractName() + "/";
+	var filePath = triasConf.TriasConfig.ContractPath + "/" + request.GetUser() + "/" + request.GetAddress() + "/" + request.GetContractName() + "/";
 	var fileName = request.GetContractName() + fileSuffix;
 	isExists, err := t_utils.PathExists(filePath + fileName);
 	if err != nil {
@@ -40,7 +40,7 @@ func (serv *server) ExecuteContract(ctx context.Context, request *tm.ExecuteCont
 	}
 
 	if !isExists {
-		err := t_utils.FileDownLoad(filePath, fileName, triasConf.GetIPFSAddress()+request.GetAddress());
+		err := t_utils.FileDownLoad(filePath, fileName, triasConf.TriasConfig.IPFSAddress+request.GetAddress());
 		if err != nil {
 			fmt.Println("Download contract happens a error", err);
 			return returnErrorResponse(err);
@@ -54,52 +54,50 @@ func (serv *server) ExecuteContract(ctx context.Context, request *tm.ExecuteCont
 
 	fSetup := blockchain.FabricSetup{
 		// Network parameters
-		OrdererID: triasConf.GetOrderServer(),
+		OrdererID: triasConf.TriasConfig.OrderServer,
 
 		// Channel parameters
-		ChannelID:     triasConf.GetChannelID(),
+		ChannelID:     triasConf.TriasConfig.ChannelID,
 		ChannelConfig: os.Getenv("GOPATH") + "/src/github.com/hyperledger/fabric/singlepeer/channel-artifacts/mychannel.tx",
 
 		// Chaincode parameters
 		ChainCodeID:      request.GetContractName(),
 		ChainCodeVersion: request.GetContractVersion(),
 		ChaincodeGoPath:  os.Getenv("GOPATH"),
-		ChaincodePath:    triasConf.GetDockerPath() + filePath[len(os.Getenv("GOPATH") + "/src/" + triasConf.GetContractPath()):],
-		OrgAdmin:         triasConf.GetOrgAdmin(),
-		OrgName:          triasConf.GetOrgName(),
-		ConfigFile:       "/home/Polarbear/workGo/src/tvm-sdk/config_e2e_single_org.yaml",
+		ChaincodePath:    triasConf.TriasConfig.DockerPath + filePath[len(triasConf.TriasConfig.ContractPath):],
+		OrgAdmin:         triasConf.TriasConfig.OrgAdmin,
+		OrgName:          triasConf.TriasConfig.OrgName,
+		ConfigFile:       os.Getenv("GOPATH") + "/src/tvm-sdk/config_e2e_single_org.yaml",
 
 		// User parameters
-		UserName: triasConf.GetUserName(),
+		UserName: triasConf.TriasConfig.OrgAdmin,
 	}
 
 	fSetup.Initialize()
 
 	defer fSetup.CloseSDK()
 
-
-	funName,args,_ := getFuncAndArgs(request.GetCommand());
-
+	funName, args, _ := t_utils.GetFuncAndArgs(request.GetCommand());
 	var respStr = ""
 	var respErr = error(nil)
 	switch request.Operation {
 	case "instantiate":
-		result,err := fSetup.InstantiateCC(t_utils.StringArrayToByte(args))
+		result, err := fSetup.InstantiateCC(t_utils.StringArrayToByte(args))
 		respStr = result
 		respErr = err
 		break;
 	case "install":
-		result,err := fSetup.InstallCC()
+		result, err := fSetup.InstallCC()
 		respStr = result
 		respErr = err
 		break;
 	case "query":
-		result,err := fSetup.Query(funName,t_utils.StringArrayToByte(args[1:]))
+		result, err := fSetup.Query(funName, t_utils.StringArrayToByte(args[1:]))
 		respStr = result
 		respErr = err
 		break;
 	case "invoke":
-		result,err := fSetup.Invoke(funName,t_utils.StringArrayToByte(args[1:]))
+		result, err := fSetup.Invoke(funName, t_utils.StringArrayToByte(args[1:]))
 		respStr = result
 		respErr = err
 		break;
@@ -111,6 +109,9 @@ func (serv *server) ExecuteContract(ctx context.Context, request *tm.ExecuteCont
 	if respErr != nil {
 		fmt.Println(respErr)
 		return returnErrorResponse(respErr);
+	} else {
+		c_hash := calculateHash(request)
+		contract.UpdateCurrentHash(triasConf.BasicHashKey, c_hash)
 	}
 
 	resp := &tm.ExecuteContractResponse{
@@ -131,27 +132,7 @@ func returnErrorResponse(err error) (*tm.ExecuteContractResponse) {
 	return resp;
 }
 
-
-func getFuncAndArgs(command string)(string,[]string,error){
-	argMap := make(map[string]interface{});
-	err := json.Unmarshal([]byte(command), &argMap)
-	if(err!=nil){
-		return "",nil,err
-	}
-	if(argMap["function"]==nil){// func in args
-		var data map[string][]string;
-		if err := json.Unmarshal([]byte(command), &data); err == nil {
-			stringArray := data["Args"];
-			var funcName = stringArray[0];
-			return funcName,stringArray,nil;
-		} else {
-			return "",nil,err;
-		}
-	}else{// func is Independent
-		//funcString,_ := argMap["function"].(string);
-		//args
-	}
-
-
-	return "",nil,nil
+func calculateHash(request *tm.ExecuteContractRequest) string {
+	var message string = string(request.GetContractName() + request.GetUser() + request.GetOperation() + string(request.GetTimestamp()) + request.GetCheckMD5());
+	return message;
 }

@@ -45,15 +45,15 @@ client:
       # Specific to the underlying KeyValueStore that backs the crypto key store.
       path: /tmp/msp
 
-   # BCCSP config for the client. Used by GO SDK.
+    # BCCSP config for the client. Used by GO SDK.
   BCCSP:
     security:
-     enabled: true
-     default:
-      provider: "SW"
-     hashAlgorithm: "SHA2"
-     softVerify: true
-     level: 256
+      enabled: true
+      default:
+        provider: "SW"
+      hashAlgorithm: "SHA2"
+      softVerify: true
+      level: 256
 
   tlsCerts:
     # [Optional]. Use system certificate pool when connecting to peers, orderers (for negotiating TLS) Default: false
@@ -62,9 +62,9 @@ client:
     # [Optional]. Client key and cert for TLS handshake with peers and orderers
     client:
       key:
-        path: 
+        path:
       cert:
-        path: 
+        path:
 
 #
 # [Optional]. But most apps would have this section so that channel objects can be constructed
@@ -82,8 +82,8 @@ channels:
     # operational decisions to share loads from applications among the orderers.  The values must
     # be "names" of orgs defined under "organizations/peers"
     # deprecated: not recommended, to override any orderer configuration items, entity matchers should be used.
-#    orderers:
-#      - orderer.trias.com
+    #    orderers:
+    #      - orderer.trias.com
 
     #[Required if _default peers not defined; Optional if _default peers defined].
     # list of peers from participating orgs
@@ -108,7 +108,7 @@ channels:
         # Default: true
         eventSource: true
 
- 
+
 #
 # list of participating organizations in this network
 #
@@ -135,7 +135,7 @@ organizations:
   # peers with a public URL to send transaction proposals. The file will not contain private
   # information reserved for members of the organization, such as admin key and certificate,
   # blockchain-ca registrar enroll ID and secret, etc.
-  
+
 
 
 #
